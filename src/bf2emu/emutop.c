@@ -96,6 +96,7 @@ bool_t bf2emu_tick(bf2emu_machine_t * machine) {
             intstate->jsp++;
             machine->io_write(machine, BF2_BUS_JSTACK, intstate->jsp, intstate.pc);
             intstate->pc = curword.longlit.lit & 0x0FFF;
+            break;
         }
         case BF2OP_MISC:
         {
@@ -109,6 +110,7 @@ bool_t bf2emu_tick(bf2emu_machine_t * machine) {
                     intstate->regs[curword.regreg.regb] = read;
 
                     intstate->pc++;
+                    break;
                 }
                 case BF2ARG_MISC_WR0 | BF2ARG_MISC_WR1 | BF2ARG_MISC_WR2 | BF2ARG_MISC_WR3:
                 {
@@ -119,31 +121,52 @@ bool_t bf2emu_tick(bf2emu_machine_t * machine) {
                     machine->io_write(machine, bus, address, data);
 
                     intstate->pc++;
+                    break;
                 }
                 case BF2ARG_MISC_RETURN:
                 {
                     intstate->pc = machine->io_read(machine, BF2_BUS_JSTACK, intstate->jsp);
                     intstate->jsp--;
+                    break;
                 }
                 case BF2ARG_MISC_RETIE:
                 {
                     intstate->pc = machine->io_read(machine, BF2_BUS_JSTACK, intstate->jsp);
                     intstate->jsp--;
                     intstate->f_inten = true;
+                    break;
                 }
                 case BF2ARG_MISC_INTDIS:
                 {
                     intstate->f_inten = false;
                     intstate->pc++;
+                    break;
                 }
                 case BF2ARG_MISC_EXTENDED:
                 {
-                    //TODO
+                    case BF2ARG_MISCEX_CALLREG:
+                    {
+                        intstate->jsp++;
+                        machine->io_write(machine, BF2_BUS_JSTACK, intstate->jsp, intstate.pc);
+                        intstate->pc = intstate->regs[curword.regreg.rega];
+                        break;
+                    }
+                    case BF2ARG_MISCEX_JMPREG:
+                    {
+                        intstate->pc = intstate->regs[curword.regreg.rega];
+                        break;
+                    }
+                    default:
+                    {
+                        return false;
+                    }
+                    break;
                 }
-                
+
                 default:
                     return false;
             }
+            break;
         }
         case BF2OP_ALU:
         {
